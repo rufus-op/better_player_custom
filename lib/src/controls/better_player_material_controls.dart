@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 class BetterPlayerMaterialControls extends StatefulWidget {
   ///Callback used to send information if player bar is hidden or not
   final Function(bool visbility) onControlsVisibilityChanged;
-  final Widget? chapters;
+  final List<Duration>? chapters;
 
   ///Controls config
   final BetterPlayerControlsConfiguration controlsConfiguration;
@@ -565,30 +565,25 @@ class _BetterPlayerMaterialControlsState
       padding: _controlsConfiguration.enablePlayPause
           ? const EdgeInsets.only(right: 24)
           : const EdgeInsets.symmetric(horizontal: 22),
-      child: Row(
-        children: [
-          RichText(
-            text: TextSpan(
-              text: BetterPlayerUtils.formatDuration(position),
+      child: RichText(
+        text: TextSpan(
+          text: BetterPlayerUtils.formatDuration(position),
+          style: TextStyle(
+            fontSize: 10.0,
+            color: _controlsConfiguration.textColor,
+            decoration: TextDecoration.none,
+          ),
+          children: <TextSpan>[
+            TextSpan(
+              text: ' / ${BetterPlayerUtils.formatDuration(duration)}',
               style: TextStyle(
                 fontSize: 10.0,
                 color: _controlsConfiguration.textColor,
                 decoration: TextDecoration.none,
               ),
-              children: <TextSpan>[
-                TextSpan(
-                  text: ' / ${BetterPlayerUtils.formatDuration(duration)}',
-                  style: TextStyle(
-                    fontSize: 10.0,
-                    color: _controlsConfiguration.textColor,
-                    decoration: TextDecoration.none,
-                  ),
-                ),
-              ],
             ),
-          ),
-          widget.chapters!,
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -698,6 +693,7 @@ class _BetterPlayerMaterialControlsState
         alignment: Alignment.bottomCenter,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: BetterPlayerMaterialVideoProgressBar(
+          chapterMarkers: widget.chapters ?? [Duration(seconds: 0)],
           _controller,
           _betterPlayerController,
           onDragStart: () {

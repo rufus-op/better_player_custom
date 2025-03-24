@@ -13,6 +13,7 @@ class BetterPlayerMaterialVideoProgressBar extends StatefulWidget {
     this.onDragStart,
     this.onDragUpdate,
     this.onTapDown,
+       this.chapterMarkers = const [], // New parameter
     Key? key,
   })  : colors = colors ?? BetterPlayerProgressColors(),
         super(key: key);
@@ -24,6 +25,7 @@ class BetterPlayerMaterialVideoProgressBar extends StatefulWidget {
   final Function()? onDragEnd;
   final Function()? onDragUpdate;
   final Function()? onTapDown;
+    final List<Duration> chapterMarkers; // Store chapter timestamps
 
   @override
   _VideoProgressBarState createState() {
@@ -127,6 +129,7 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
             painter: _ProgressBarPainter(
               _getValue(),
               widget.colors,
+              widget.chapterMarkers
             ),
           ),
         ),
@@ -182,21 +185,95 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   }
 }
 
-class _ProgressBarPainter extends CustomPainter {
-  _ProgressBarPainter(this.value, this.colors);
+// class _ProgressBarPainter extends CustomPainter {
+//   _ProgressBarPainter(this.value, this.colors, this.chapterMarkers);
 
-  VideoPlayerValue value;
-  BetterPlayerProgressColors colors;
+//   final VideoPlayerValue value;
+//   final BetterPlayerProgressColors colors;
+//   final List<Duration> chapterMarkers;
+
+//   @override
+//   bool shouldRepaint(CustomPainter painter) {
+//     return true;
+//   }
+
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     const height = 2.0;
+
+//     canvas.drawRRect(
+//       RRect.fromRectAndRadius(
+//         Rect.fromPoints(
+//           Offset(0.0, size.height / 2),
+//           Offset(size.width, size.height / 2 + height),
+//         ),
+//         const Radius.circular(4.0),
+//       ),
+//       colors.backgroundPaint,
+//     );
+//     if (!value.initialized) {
+//       return;
+//     }
+//     double playedPartPercent = value.position.inMilliseconds / value.duration!.inMilliseconds;
+//     if (playedPartPercent.isNaN) {
+//       playedPartPercent = 0;
+//     }
+//     final double playedPart = playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
+//     for (final DurationRange range in value.buffered) {
+//       double start = range.startFraction(value.duration!) * size.width;
+//       if (start.isNaN) {
+//         start = 0;
+//       }
+//       double end = range.endFraction(value.duration!) * size.width;
+//       if (end.isNaN) {
+//         end = 0;
+//       }
+//       canvas.drawRRect(
+//         RRect.fromRectAndRadius(
+//           Rect.fromPoints(
+//             Offset(start, size.height / 2),
+//             Offset(end, size.height / 2 + height),
+//           ),
+//           const Radius.circular(4.0),
+//         ),
+//         colors.bufferedPaint,
+//       );
+//     }
+//     canvas.drawRRect(
+//       RRect.fromRectAndRadius(
+//         Rect.fromPoints(
+//           Offset(0.0, size.height / 2),
+//           Offset(playedPart, size.height / 2 + height),
+//         ),
+//         const Radius.circular(4.0),
+//       ),
+//       colors.playedPaint,
+//     );
+//     canvas.drawCircle(
+//       Offset(playedPart, size.height / 2 + height / 2),
+//       height * 3,
+//       colors.handlePaint,
+//     );
+//   }
+// }
+
+class _ProgressBarPainter extends CustomPainter {
+  _ProgressBarPainter(this.value, this.colors, this.chapterMarkers);
+
+  final VideoPlayerValue value;
+  final BetterPlayerProgressColors colors;
+  final List<Duration> chapterMarkers;
 
   @override
-  bool shouldRepaint(CustomPainter painter) {
+  bool shouldRepaint(CustomPainter oldDelegate) {
     return true;
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    const height = 2.0;
+    const double height = 2.0;
 
+    // Draw background bar
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromPoints(
@@ -207,23 +284,21 @@ class _ProgressBarPainter extends CustomPainter {
       ),
       colors.backgroundPaint,
     );
-    if (!value.initialized) {
-      return;
-    }
+
+    if (!value.initialized) return;
+
+    // Calculate played percentage
     double playedPartPercent = value.position.inMilliseconds / value.duration!.inMilliseconds;
-    if (playedPartPercent.isNaN) {
-      playedPartPercent = 0;
-    }
-    final double playedPart = playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
+    playedPartPercent = playedPartPercent.isNaN ? 0 : playedPartPercent;
+    final double playedPart = playedPartPercent * size.width;
+
+    // Draw buffered sections
     for (final DurationRange range in value.buffered) {
       double start = range.startFraction(value.duration!) * size.width;
-      if (start.isNaN) {
-        start = 0;
-      }
       double end = range.endFraction(value.duration!) * size.width;
-      if (end.isNaN) {
-        end = 0;
-      }
+      start = start.isNaN ? 0 : start;
+      end = end.isNaN ? 0 : end;
+
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromPoints(
@@ -235,6 +310,8 @@ class _ProgressBarPainter extends CustomPainter {
         colors.bufferedPaint,
       );
     }
+
+    // Draw played progress
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromPoints(
@@ -245,6 +322,20 @@ class _ProgressBarPainter extends CustomPainter {
       ),
       colors.playedPaint,
     );
+
+    // Draw chapter markers (Red indicators)
+    for (Duration chapter in chapterMarkers) {
+      double chapterPosition = (chapter.inMilliseconds / value.duration!.inMilliseconds) * size.width;
+      chapterPosition = chapterPosition.isNaN ? 0 : chapterPosition;
+
+      canvas.drawLine(
+        Offset(chapterPosition, size.height / 2 - 3),
+        Offset(chapterPosition, size.height / 2 + height + 3),
+        Paint()..color = Colors.red..strokeWidth = 2,
+      );
+    }
+
+    // Draw handle
     canvas.drawCircle(
       Offset(playedPart, size.height / 2 + height / 2),
       height * 3,

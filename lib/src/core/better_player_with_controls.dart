@@ -12,8 +12,10 @@ import 'package:flutter/material.dart';
 
 class BetterPlayerWithControls extends StatefulWidget {
   final BetterPlayerController? controller;
+  final List<Duration>? chapters;
 
-  const BetterPlayerWithControls({Key? key, this.controller}) : super(key: key);
+  const BetterPlayerWithControls({Key? key, this.controller, this.chapters})
+      : super(key: key);
 
   @override
   _BetterPlayerWithControlsState createState() =>
@@ -37,8 +39,8 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   @override
   void initState() {
     playerVisibilityStreamController.add(true);
-    _controllerEventSubscription = widget.controller!.controllerEventStream
-        .listen(_onControllerChanged);
+    _controllerEventSubscription =
+        widget.controller!.controllerEventStream.listen(_onControllerChanged);
     super.initState();
   }
 
@@ -46,8 +48,8 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   void didUpdateWidget(BetterPlayerWithControls oldWidget) {
     if (oldWidget.controller != widget.controller) {
       _controllerEventSubscription?.cancel();
-      _controllerEventSubscription = widget.controller!.controllerEventStream
-          .listen(_onControllerChanged);
+      _controllerEventSubscription =
+          widget.controller!.controllerEventStream.listen(_onControllerChanged);
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -74,20 +76,16 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
 
     double? aspectRatio;
     if (betterPlayerController.isFullScreen) {
-      if (betterPlayerController
-              .betterPlayerConfiguration
+      if (betterPlayerController.betterPlayerConfiguration
               .autoDetectFullscreenDeviceOrientation ||
           betterPlayerController
-              .betterPlayerConfiguration
-              .autoDetectFullscreenAspectRatio) {
+              .betterPlayerConfiguration.autoDetectFullscreenAspectRatio) {
         aspectRatio =
             betterPlayerController.videoPlayerController?.value.aspectRatio ??
-            1.0;
+                1.0;
       } else {
-        aspectRatio =
-            betterPlayerController
-                .betterPlayerConfiguration
-                .fullScreenAspectRatio ??
+        aspectRatio = betterPlayerController
+                .betterPlayerConfiguration.fullScreenAspectRatio ??
             BetterPlayerUtils.calculateAspectRatio(context);
       }
     } else {
@@ -97,11 +95,8 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
     aspectRatio ??= 16 / 9;
     final innerContainer = Container(
       width: double.infinity,
-      color:
-          betterPlayerController
-              .betterPlayerConfiguration
-              .controlsConfiguration
-              .backgroundColor,
+      color: betterPlayerController
+          .betterPlayerConfiguration.controlsConfiguration.backgroundColor,
       child: AspectRatio(
         aspectRatio: aspectRatio,
         child: _buildPlayerWithControls(betterPlayerController, context),
@@ -183,14 +178,9 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
 
       if (controlsConfiguration.customControlsBuilder != null &&
           playerTheme == BetterPlayerTheme.custom) {
-        return _buildMaterialControl(
-          chapters: controlsConfiguration.customControlsBuilder!(
-            betterPlayerController,
-            onControlsVisibilityChanged,
-          ),
-        );
+        return _buildMaterialControl(chapters: widget.chapters);
       } else if (playerTheme == BetterPlayerTheme.material) {
-        return _buildMaterialControl();
+        return _buildMaterialControl(chapters: widget.chapters);
       } else if (playerTheme == BetterPlayerTheme.cupertino) {
         return _buildCupertinoControl();
       }
@@ -199,11 +189,11 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
     return const SizedBox();
   }
 
-  Widget _buildMaterialControl({Widget? chapters}) {
+  Widget _buildMaterialControl({List<Duration>? chapters}) {
     return BetterPlayerMaterialControls(
       onControlsVisibilityChanged: onControlsVisibilityChanged,
       controlsConfiguration: controlsConfiguration,
-      chapters: chapters ?? SizedBox(),
+      chapters: chapters,
     );
   }
 
@@ -251,9 +241,7 @@ class _BetterPlayerVideoFitWidgetState
   @override
   void initState() {
     super.initState();
-    if (!widget
-        .betterPlayerController
-        .betterPlayerConfiguration
+    if (!widget.betterPlayerController.betterPlayerConfiguration
         .showPlaceholderUntilPlay) {
       _started = true;
     } else {
@@ -294,24 +282,22 @@ class _BetterPlayerVideoFitWidgetState
       _initialized = true;
     }
 
-    _controllerEventSubscription = widget
-        .betterPlayerController
-        .controllerEventStream
-        .listen((event) {
-          if (event == BetterPlayerControllerEvent.play) {
-            if (!_started) {
-              setState(() {
-                _started =
-                    widget.betterPlayerController.hasCurrentDataSourceStarted;
-              });
-            }
-          }
-          if (event == BetterPlayerControllerEvent.setupDataSource) {
-            setState(() {
-              _started = false;
-            });
-          }
+    _controllerEventSubscription =
+        widget.betterPlayerController.controllerEventStream.listen((event) {
+      if (event == BetterPlayerControllerEvent.play) {
+        if (!_started) {
+          setState(() {
+            _started =
+                widget.betterPlayerController.hasCurrentDataSourceStarted;
+          });
+        }
+      }
+      if (event == BetterPlayerControllerEvent.setupDataSource) {
+        setState(() {
+          _started = false;
         });
+      }
+    });
   }
 
   @override
